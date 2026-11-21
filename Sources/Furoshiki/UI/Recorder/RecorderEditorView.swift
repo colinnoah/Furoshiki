@@ -11,22 +11,12 @@ struct RecorderEditorView: View {
     @ObservedObject var model: RecorderEditorModel
     let controller: RecorderEditorController
     @ObservedObject private var l10n = L10n.shared
-    @State private var sharedRecord: RecordingShareRecord?
     /// The area being drawn for a blur, in the stage's own points, while the
     /// mouse is down.
     @State private var blurDraft: CGRect?
-    @AppStorage(DefaultsKey.recorderSharingEnabled) private var sharingEnabled = true
 
     private var strings: RecorderFeatureStrings {
         FeatureStrings.recorder(l10n.language)
-    }
-
-    private var shareStrings: RecorderShareStrings {
-        FeatureStrings.recorderShare(l10n.language)
-    }
-
-    private var screenshotStrings: ScreenshotFeatureStrings {
-        FeatureStrings.screenshot(l10n.language)
     }
 
     private var recentCapturesTitle: String {
@@ -52,11 +42,6 @@ struct RecorderEditorView: View {
         .animation(.easeOut(duration: 0.18), value: model.isExporting)
         .animation(.easeOut(duration: 0.18), value: model.lastExportedURL)
         .frame(minWidth: 940, minHeight: 560)
-        .sheet(item: $sharedRecord) { record in
-            RecorderSharedLinkView(record: record,
-                                   strings: screenshotStrings,
-                                   close: { sharedRecord = nil })
-        }
     }
 
     // MARK: - Bands
@@ -129,11 +114,6 @@ struct RecorderEditorView: View {
             .fixedSize()
             .layoutPriority(1)
 
-            if sharingEnabled {
-                shareMenu
-                    .layoutPriority(1)
-            }
-
             RecorderExportFormatControl(model: model)
                 .layoutPriority(1)
 
@@ -161,26 +141,6 @@ struct RecorderEditorView: View {
         .frame(height: 54)
         .background(.ultraThinMaterial)
         .overlay(alignment: .bottom) { Divider().opacity(0.45) }
-    }
-
-    private var shareMenu: some View {
-        Menu {
-            ForEach(RecordingShareDuration.allCases) { duration in
-                Button(duration.title(screenshotStrings)) {
-                    controller.share(duration) { record in
-                        sharedRecord = record
-                    }
-                }
-            }
-        } label: {
-            Image(systemName: "link")
-                .frame(width: 24, height: 24)
-        }
-        .menuStyle(.borderlessButton)
-        .fixedSize()
-        .disabled(model.isExporting)
-        .screenshotSafeHelp(screenshotStrings.shareButton)
-        .accessibilityLabel(screenshotStrings.shareButton)
     }
 
     private var presetsMenu: some View {
@@ -496,15 +456,9 @@ struct RecorderEditorView: View {
         HStack(spacing: 8) {
             ViewThatFits(in: .horizontal) {
                 HStack(spacing: 8) {
-                    if model.exportPhase == .uploading {
-                        ProgressView()
-                            .controlSize(.small)
-                            .frame(width: 20)
-                    } else {
-                        ProgressView(value: model.exportProgress)
-                            .progressViewStyle(.linear)
-                            .frame(minWidth: 24, idealWidth: 110, maxWidth: 110)
-                    }
+                    ProgressView(value: model.exportProgress)
+                        .progressViewStyle(.linear)
+                        .frame(minWidth: 24, idealWidth: 110, maxWidth: 110)
                     Text(exportProgressLabel)
                         .font(.system(size: 11, weight: .medium))
                         .foregroundStyle(Color(white: 0.8))
@@ -530,11 +484,7 @@ struct RecorderEditorView: View {
     }
 
     private var exportProgressLabel: String {
-        switch model.exportPhase {
-        case .saving: strings.exportingLabel
-        case .compressing: shareStrings.compressing
-        case .uploading: shareStrings.uploading
-        }
+        strings.exportingLabel
     }
 
     /// The finished file itself, draggable straight into a chat window and
@@ -560,92 +510,6 @@ struct RecorderEditorView: View {
         .screenshotSafeHelp(l10n.s.cleanerRevealInFinder)
         .onDrag { NSItemProvider(contentsOf: url) ?? NSItemProvider() }
         .transition(.opacity)
-    }
-}
-
-private struct RecorderSharedLinkView: View {
-    let record: RecordingShareRecord
-    let strings: ScreenshotFeatureStrings
-    let close: () -> Void
-    @State private var deleting = false
-    @State private var showingDeleteError = false
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 18) {
-            HStack {
-                Label(strings.sharedLinksTitle, systemImage: "link")
-                    .font(.title3.weight(.semibold))
-                Spacer()
-                Button(strings.done, action: close)
-                    .keyboardShortcut(.defaultAction)
-            }
-
-            VStack(alignment: .leading, spacing: 7) {
-                Text(record.url.absoluteString)
-                    .font(.system(.body, design: .rounded))
-                    .lineLimit(1)
-                    .truncationMode(.middle)
-                    .textSelection(.enabled)
-                HStack(spacing: 4) {
-                    Text(strings.expiresLabel)
-                    Text(record.expiresAt, style: .relative)
-                }
-                .font(.caption)
-                .foregroundStyle(.secondary)
-            }
-            .padding(14)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .background(Color.primary.opacity(0.055),
-                        in: RoundedRectangle(cornerRadius: 10, style: .continuous))
-            .overlay {
-                RoundedRectangle(cornerRadius: 10, style: .continuous)
-                    .strokeBorder(Color.primary.opacity(0.10), lineWidth: 1)
-            }
-
-            HStack {
-                Spacer()
-                Button {
-                    if RecordingShareService.shared.copy(record.url) {
-                        QuickToolHUD.show(icon: "link", message: strings.sharedHUD)
-                    } else {
-                        NSSound.beep()
-                    }
-                } label: {
-                    Label(strings.copyLink, systemImage: "doc.on.doc")
-                }
-                .keyboardShortcut("c", modifiers: .command)
-                Button(role: .destructive) {
-                    deleteLink()
-                } label: {
-                    if deleting {
-                        ProgressView()
-                            .controlSize(.small)
-                    } else {
-                        Label(strings.deleteLink, systemImage: "trash")
-                    }
-                }
-                .disabled(deleting)
-            }
-        }
-        .padding(20)
-        .frame(width: 480)
-        .alert(strings.deleteFailedHUD, isPresented: $showingDeleteError) {
-            Button(strings.done, role: .cancel) {}
-        }
-    }
-
-    private func deleteLink() {
-        deleting = true
-        Task { @MainActor in
-            do {
-                try await RecordingShareService.shared.delete(record)
-                QuickToolHUD.show(icon: "link", message: strings.linkDeletedHUD)
-                close()
-            } catch {
-                deleting = false
-                showingDeleteError = true
-            }
-        }
     }
 }
 

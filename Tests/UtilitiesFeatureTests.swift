@@ -1588,17 +1588,6 @@ enum UtilitiesFeatureTests {
         suite.expect(SettingsBackupSupport.exportKeys().contains(DefaultsKey.diskEjectExcludedVolumes),
                "disk eject exclusions travel in backups")
 
-        // MARK: A sleeping clock
-        for shareService in ["Sources/Furoshiki/Services/QuickTools/ScreenshotShareService.swift",
-                             "Sources/Furoshiki/Services/Recorder/RecordingShareService.swift"] {
-            let shareCode = ((try? String(contentsOfFile: shareService, encoding: .utf8)) ?? "")
-                .components(separatedBy: "\n")
-                .filter { !$0.trimmingCharacters(in: .whitespaces).hasPrefix("//") }
-                .joined(separator: "\n")
-            suite.expect(shareCode.contains("NSWorkspace.didWakeNotification"),
-                   "\(shareService) recomputes share link expiry on wake, which its sleeping clock missed")
-        }
-
         // The confirmation HUD is a hand-laid AppKit panel, so its width is
         // pinned as source shape. It used to be a fixed 300pt, which clipped
         // the longer translations. Sizing it from a separate

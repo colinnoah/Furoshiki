@@ -358,7 +358,6 @@ if (( TEST )); then
         Sources/Furoshiki/Core/ScreenshotStrings.swift
         Sources/Furoshiki/Core/RecentCaptureStrings.swift
         Sources/Furoshiki/Core/RecorderStrings.swift
-        Sources/Furoshiki/Core/RecorderShareStrings.swift
         Sources/Furoshiki/Core/CameraPreviewStrings.swift
         Sources/Furoshiki/Core/WallpaperStrings.swift
         Sources/Furoshiki/Services/Wallpaper/WallpaperSupport.swift
@@ -405,7 +404,6 @@ if (( TEST )); then
         Sources/Furoshiki/Services/Recorder/RecorderFastGIFWriter.swift
         Sources/Furoshiki/Services/Recorder/RecorderGIFWorkspace.swift
         Sources/Furoshiki/Services/Recorder/RecorderComposition.swift
-        Sources/Furoshiki/Services/Recorder/RecordingSharingSupport.swift
         Sources/Furoshiki/Services/PrivateFileStore.swift
         Sources/Furoshiki/Services/Recorder/RecorderTakeStore.swift
         Sources/Furoshiki/Services/Recorder/RecorderPresetImageStore.swift
