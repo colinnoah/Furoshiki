@@ -15,6 +15,10 @@ concurrency:
 jobs:
   compatibility:
     name: Swift 6.0.3 compatibility
+    # The oldest supported toolchain runs on main only. Pull requests wait on
+    # the macOS 26 build alone, which keeps their checks quick; a Swift 6.0.3
+    # break shows up on main right after the merge.
+    if: github.event_name == 'push'
     runs-on: macos-15
     timeout-minutes: 30
     env:
