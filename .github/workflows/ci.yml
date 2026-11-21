@@ -60,5 +60,16 @@ jobs:
       - name: Package DMG
         run: ./Tools/make-dmg.sh
 
+      # A testable build for anyone without the toolchain: the ad-hoc signed
+      # disk image, downloadable from the run's Artifacts section.
+      - name: Upload DMG
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: Furoshiki-dmg
+          path: dist/*.dmg
+          if-no-files-found: error
+          retention-days: 14
+          compression-level: 0
+
       - name: Unit tests
         run: ./build.sh --test
