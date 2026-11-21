@@ -2980,8 +2980,6 @@ Furoshiki 3.1.0 adds three optional tools: Clipboard History for saving and reus
   default, with a setting to split them into separate CPU°C, GPU°C and BAT°C
   blocks.
 
-![Menu bar temperature metrics](https://raw.githubusercontent.com/colinnoah/Furoshiki/main/Resources/Images/menu-bar-temperature-metrics.png)
-
 ## [3.0.7] - 2026-06-20
 
 ### Added
