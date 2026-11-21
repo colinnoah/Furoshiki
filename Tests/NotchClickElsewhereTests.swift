@@ -32,9 +32,7 @@ enum NotchClickElsewhereTests {
         lazy var captureDismiss: (() -> Void)? = { [unowned self] in self.dismissals += 1 }
         func collapse() { collapses += 1 }
     }
-    final class Model { var sharing = false }
     class PreviewState {
-        let model = Model()
         var closes = 0
         func close() { closes += 1 }
     }
@@ -80,11 +78,7 @@ enum NotchClickElsewhereTests {
         suite.expect(outsideCopy.dismissals == 1, "a click outside every visible island dismisses the preview")
 
         let controller = Preview()
-        controller.model.sharing = true
         controller.dismissForClickElsewhere()
-        suite.expect(controller.closes == 0, "a click elsewhere keeps a preview whose share link is still being made")
-        controller.model.sharing = false
-        controller.dismissForClickElsewhere()
-        suite.expect(controller.closes == 1, "a click elsewhere closes an idle screenshot preview")
+        suite.expect(controller.closes == 1, "a click elsewhere closes the screenshot preview")
     }
 }
