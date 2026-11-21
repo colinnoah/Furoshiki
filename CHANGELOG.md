@@ -17,6 +17,8 @@ The first Furoshiki release: a new name and icon, no server behind the app, and 
 - Setup combines bundles. Essentials, Windows and Battery can be picked together, and Install all selects every feature this Mac supports.
 - Request all on the setup's permissions step asks for every missing permission one at a time, so dialogs and System Settings never pile up.
 - Setup explains the name: a furoshiki is a Japanese wrapping cloth that ties many things into one neat bundle, as Furoshiki does with your Mac tools.
+- Features at the bottom of the menu bar panel lists every feature. Switch each one on or off right there, and the gear opens its settings.
+- A short tour at the end of setup shows where the menu bar icon, the panel tabs, the feature list and Settings are.
 - Save current preferences to the XDG settings file from Settings > Advanced > Backup. The confirmation shows where the file will be saved.
 
 ### Changed
