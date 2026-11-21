@@ -1,0 +1,75 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
+
+jobs:
+  compatibility:
+    name: Swift 6.0.3 compatibility
+    # The oldest supported toolchain runs on main only. Pull requests wait on
+    # the macOS 26 build alone, which keeps their checks quick; a Swift 6.0.3
+    # break shows up on main right after the merge.
+    if: github.event_name == 'push'
+    runs-on: macos-15
+    timeout-minutes: 30
+    env:
+      DEVELOPER_DIR: /Applications/Xcode_16.2.app/Contents/Developer
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+
+      - name: Verify toolchain
+        run: |
+          swiftc --version | grep -F "Apple Swift version 6.0.3"
+          test "$(xcrun --sdk macosx --show-sdk-version)" = "15.2"
+
+      - name: Build
+        run: ./build.sh
+
+      - name: Selftest
+        run: ./build/Furoshiki --selftest
+
+      - name: Unit tests
+        run: ./build.sh --test
+
+  build:
+    name: Build & selftest
+    runs-on: macos-26
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+
+      - name: Build
+        run: ./build.sh
+
+      - name: Selftest
+        run: ./build/Furoshiki --selftest
+
+      - name: Package DMG
+        run: ./Tools/make-dmg.sh
+
+      # A testable build for anyone without the toolchain: the ad-hoc signed
+      # disk image, downloadable from the run's Artifacts section.
+      - name: Upload DMG
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: Furoshiki-dmg
+          path: dist/*.dmg
+          if-no-files-found: error
+          retention-days: 14
+          compression-level: 0
+
+      - name: Unit tests
+        run: ./build.sh --test
