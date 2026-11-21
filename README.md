@@ -18,6 +18,7 @@
 </p>
 
 <p align="center">
+  <a href="https://github.com/colinnoah/Furoshiki/actions/workflows/ci.yml"><img src="https://github.com/colinnoah/Furoshiki/actions/workflows/ci.yml/badge.svg?branch=main&event=push" alt="CI status"></a>
   <img src="https://img.shields.io/badge/macOS-14%2B%20Apple%20Silicon-black" alt="macOS 14 and newer, Apple Silicon">
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-GPL--3.0--or--later-blue" alt="License GPL 3.0 or later"></a>
 </p>
@@ -175,6 +176,7 @@ The Furoshiki mark is a knotted cloth bundle: the body carries a seigaiha wave p
 - `mark-template.svg`, the one-color mark used for the menu bar template glyph and in-app `BrandMark` (rendered to `Resources/Brand/logo.png`)
 - `mark-color.svg`, the full-color mark used for the README and the Icon Composer layer
 - `generate-icon.js`, the script that generates the seigaiha pattern and the colored SVGs
+- `social-preview.jpg`, the 1280×640 GitHub social preview, built from `social-preview.html` by `generate-social-preview.js`
 
 ## Documentation
 
