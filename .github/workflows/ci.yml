@@ -51,6 +51,16 @@ jobs:
         with:
           persist-credentials: false
 
+      # The same self-signed identity on every build keeps the app's code
+      # requirement constant, so Accessibility and Screen Recording grants
+      # survive installing a newer test build. Without the secrets this is a
+      # no-op and the build is signed ad-hoc.
+      - name: Import signing certificate
+        env:
+          SIGNING_CERT_P12: ${{ secrets.SIGNING_CERT_P12 }}
+          SIGNING_CERT_PASSWORD: ${{ secrets.SIGNING_CERT_PASSWORD }}
+        run: ./Tools/ci-setup-signing.sh
+
       - name: Build
         run: ./build.sh
 
