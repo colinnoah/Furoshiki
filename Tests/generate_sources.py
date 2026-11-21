@@ -2148,7 +2148,8 @@ def main():
           + declaration("Sources/Furoshiki/UI/Notch/NotchComponents.swift", "struct NotchButtonStyle:")
           + "enum ScreenshotQuickPreviewController {\n"
           + declaration(preview, "    enum Action {")
-          + declaration(preview, "    fileprivate static func size(").replace("fileprivate", "", 1)
+          + next(line for line in (ROOT / preview).read_text().splitlines(keepends=True)
+                 if line.startswith("    fileprivate static let size")).replace("fileprivate ", "", 1)
           + "}\n}\nextension View {\n"
           + declaration("Sources/Furoshiki/UI/Screenshot/ScreenshotEditorView.swift", "    func screenshotSafeHelp(")
               .replace("    func", "    @ViewBuilder\n    func", 1)
