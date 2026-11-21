@@ -446,6 +446,8 @@ private struct PurposeStep: View {
 
 private struct SelectedPermissionsStep: View {
     @ObservedObject private var l10n = L10n.shared
+    @ObservedObject private var permissionState = Permissions.shared
+    @ObservedObject private var batchRequest = PermissionBatchRequest.shared
     @State private var showingOtherPermissions = false
     let features: Set<AppFeature>
     let permissions: [AppPermission]
@@ -460,6 +462,28 @@ private struct SelectedPermissionsStep: View {
             StepHeader(icon: "key.horizontal.fill",
                        title: hub.tabPermissions,
                        subtitle: hub.permissionsIntro)
+
+            // One button for everything still missing. The flow asks one
+            // permission at a time, so dialogs and System Settings panes
+            // never stack up.
+            if batchRequest.isRunning || PermissionBatchRequest.hasRequestablePermissions {
+                Button {
+                    PermissionBatchRequest.shared.start()
+                } label: {
+                    HStack(spacing: 8) {
+                        if batchRequest.isRunning {
+                            ProgressView().controlSize(.small)
+                        } else {
+                            Image(systemName: "checkmark.shield")
+                        }
+                        Text(hub.requestAllButton)
+                    }
+                    .frame(minWidth: 180)
+                }
+                .buttonStyle(.borderedProminent)
+                .controlSize(.large)
+                .disabled(batchRequest.isRunning)
+            }
 
             VStack(alignment: .leading, spacing: 12) {
                 Text(hub.onboardingSelectedPermissionsTitle)
