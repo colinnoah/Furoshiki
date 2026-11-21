@@ -531,7 +531,6 @@ if (( TEST )); then
         Sources/Furoshiki/Services/QuickTools/ScreenshotRenderer.swift
         Sources/Furoshiki/Services/QuickTools/ScreenshotImageLayerRendering.swift
         Sources/Furoshiki/Services/QuickTools/RecentCaptureStore.swift
-        Sources/Furoshiki/Services/QuickTools/ScreenshotSharingSupport.swift
         Sources/Furoshiki/Services/QuickTools/WindowActivationPolicy.swift
         Sources/Furoshiki/Services/KeyboardDebounce/KeyboardDebounceSupport.swift
         Sources/Furoshiki/Services/SuperKey/SuperKeySupport.swift

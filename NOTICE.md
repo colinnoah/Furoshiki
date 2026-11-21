@@ -17,9 +17,10 @@ This fork is based on upstream commit `faada18df1b90572cddc6182ce7fc04e0eb1435c`
   logo, brand assets, README screenshots and release showcase video were removed.
 - Update checks, release downloads and the AI price list point at this
   repository (`colinnoah/Furoshiki`) instead of upstream.
-- The upstream share and feedback server (`screenshots.vorssaint.com`) was
-  replaced by the placeholder `share.furoshiki.invalid`, so temporary links and
-  in-app feedback stay inactive until this project runs its own backend.
+- Removed every feature that relied on the upstream server
+  (`screenshots.vorssaint.com`): temporary screenshot links, temporary recording
+  links, the upload-last-capture shortcut and the in-app feedback form. The
+  feedback buttons now open this repository's GitHub issue forms instead.
 - Donation, website, Discord and social links point at this repository.
 - README, NOTICE and TRADEMARKS rewritten for the fork; other docs renamed.
 

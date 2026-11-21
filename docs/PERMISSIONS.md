@@ -74,7 +74,7 @@ The color picker also uses this permission for Furoshiki's magnifier and keyboar
 
 **If you say no.** Screen recording still works without your microphone. System audio remains a separate choice.
 
-**Optional.** Yes. Microphone audio stays in the recording on your Mac unless you explicitly create a temporary link for the finished video.
+**Optional.** Yes. Microphone audio stays in the recording on your Mac.
 
 ## Camera
 
