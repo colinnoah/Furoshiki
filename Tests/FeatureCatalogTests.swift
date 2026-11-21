@@ -2004,8 +2004,10 @@ enum FeatureCatalogTests {
             suite.expect(shortcutValues.allSatisfy { !$0.contains("—") }
                     && FeatureStrings.shortcuts(language).superKeyAlternativeFormat.contains("%@"),
                    "shortcut editor strings keep their format and avoid em-dashes (\(language.rawValue))")
-            suite.expect(FeatureStrings.feedback(language).charactersFormat.contains("%d"),
-                   "feedback character format keeps its placeholder (\(language.rawValue))")
+            let feedback = FeatureStrings.feedback(language)
+            suite.expect([feedback.sectionTitle, feedback.openButton, feedback.commandBug, feedback.commandFeature]
+                    .allSatisfy { !$0.isEmpty },
+                   "feedback entry points are translated (\(language.rawValue))")
             suite.expect(FeatureStrings.radialMenu(language).mediaOpenAppFormat.contains("%@"),
                    "Now Playing keeps the app-name placeholder (\(language.rawValue))")
             suite.expect(FeatureStrings.scratchpad(language).deletePadMessageFormat.contains("%@")
