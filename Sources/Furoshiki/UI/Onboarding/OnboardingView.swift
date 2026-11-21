@@ -27,20 +27,14 @@ struct OnboardingView: View {
     /// app when Screen Recording is granted mid-onboarding.
     @AppStorage(DefaultsKey.onboardingStep) private var index = 0
     @State private var selectedFeatures: Set<AppFeature>
-    @State private var selectedPresets: Set<FeaturePreset>
 
     init(mode: OnboardingMode = .full, onFinish: @escaping () -> Void) {
         self.mode = mode
         self.onFinish = onFinish
-        let defaults = UserDefaults.standard
-        let selectionWasApplied = defaults.bool(forKey: DefaultsKey.hasOnboarded)
-            || defaults.integer(forKey: DefaultsKey.onboardingStep) >= 2
         // Startup has already installed the first-run preset and any features
         // declared in the settings file. Show the selection Continue will save.
         let features = Set(AppFeature.allCases.filter(\.isAvailable))
         _selectedFeatures = State(initialValue: features)
-        _selectedPresets = State(initialValue: !selectionWasApplied && features == FeaturePreset.essential.features
-            ? [.essential] : [])
     }
 
     private var setupPermissions: [AppPermission] {
@@ -82,8 +76,7 @@ struct OnboardingView: View {
     private var content: some View {
         switch current {
         case .welcome: WelcomeStep()
-        case .purpose: PurposeStep(selectedFeatures: $selectedFeatures,
-                                   selectedPresets: $selectedPresets)
+        case .purpose: PurposeStep(selectedFeatures: $selectedFeatures)
         case .permissions: SelectedPermissionsStep(features: selectedFeatures,
                                                    permissions: setupPermissions)
         case .done: DoneStep()
@@ -119,7 +112,7 @@ struct OnboardingView: View {
                         FeatureRuntime.shared.replaceAvailable(
                             with: selectedFeatures,
                             enabling: FeaturePreset.allCases
-                                .filter(selectedPresets.contains)
+                                .filter { $0.installableFeatures.isSubset(of: selectedFeatures) }
                                 .flatMap(\.enableKeys))
                     }
                     withAnimation(.easeInOut(duration: 0.2)) { index += 1 }
@@ -210,15 +203,17 @@ private struct WelcomeStep: View {
 
 // MARK: - Purpose step
 
-/// Presets are quick starts that combine: picking several installs the
-/// features of all of them. The catalog below allows an exact choice, and
-/// its header can select every feature this Mac can install at once. Both
-/// use the Features hub's own names and descriptions so setup stays
-/// consistent with what the person can change later.
+/// Presets are quick starts that add to the selection instead of replacing
+/// it: a preset reads as ticked while all of its features are selected,
+/// ticking it adds them and unticking removes only its own. Features picked
+/// by hand or by another preset stay, so the person can combine bundles and
+/// switch between everything they installed. The catalog below allows an
+/// exact choice, and its header can select every installable feature at
+/// once. Both use the Features hub's own names and descriptions so setup
+/// stays consistent with what the person can change later.
 private struct PurposeStep: View {
     @ObservedObject private var l10n = L10n.shared
     @Binding var selectedFeatures: Set<AppFeature>
-    @Binding var selectedPresets: Set<FeaturePreset>
 
     private var hub: FeatureHubStrings { FeatureStrings.hub(l10n.language) }
 
@@ -306,7 +301,6 @@ private struct PurposeStep: View {
     /// of them are chosen, with the hub's own install-all wording.
     private var selectAllButton: some View {
         Button(allSelected ? hub.uninstallAllButton : hub.installAllButton) {
-            selectedPresets = []
             selectedFeatures = allSelected ? [] : installableFeatures
         }
         .buttonStyle(.borderless)
@@ -314,15 +308,12 @@ private struct PurposeStep: View {
     }
 
     private func bundleCard(_ preset: FeaturePreset) -> some View {
-        let selected = selectedPresets.contains(preset)
+        let selected = preset.installableFeatures.isSubset(of: selectedFeatures)
         return Button {
             if selected {
-                selectedPresets.remove(preset)
+                selectedFeatures.subtract(preset.features)
             } else {
-                selectedPresets.insert(preset)
-            }
-            selectedFeatures = selectedPresets.reduce(into: Set<AppFeature>()) {
-                $0.formUnion($1.features)
+                selectedFeatures.formUnion(preset.installableFeatures)
             }
         } label: {
             HStack(spacing: 12) {
@@ -361,7 +352,7 @@ private struct PurposeStep: View {
         .buttonStyle(.plain)
         .accessibilityLabel("\(name(preset)). \(caption(preset))")
         .accessibilityAddTraits(selected ? .isSelected : [])
-        .animation(.easeOut(duration: 0.15), value: selectedPresets)
+        .animation(.easeOut(duration: 0.15), value: selected)
     }
 
     private func featureCard(_ feature: AppFeature) -> some View {
@@ -372,7 +363,6 @@ private struct PurposeStep: View {
         // hub row does it.
         let blocked = feature.installBlockedReason
         let card = Button {
-            selectedPresets = []
             if selected {
                 selectedFeatures.remove(feature)
                 if feature == .notch {
@@ -628,5 +618,14 @@ private struct StepHeader: View {
                 .padding(.horizontal, 48)
         }
         .padding(.top, 30)
+    }
+}
+
+private extension FeaturePreset {
+    /// The preset's features this Mac can install, through the same gate as
+    /// the catalog rows, so a bundle with an unsupported feature can still
+    /// read as fully picked.
+    var installableFeatures: Set<AppFeature> {
+        features.filter { $0.installBlockedReason == nil }
     }
 }

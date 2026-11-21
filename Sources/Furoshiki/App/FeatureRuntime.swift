@@ -131,12 +131,13 @@ final class FeatureRuntime: ObservableObject {
         if changed { finishAvailabilityChange() }
     }
 
-    /// Applies a hub preset: its features become the installed set, with
-    /// their enable keys switched on so they work right away, and everything
-    /// else uninstalls. Nothing is deleted, so any feature returns with one
-    /// click, settings intact.
+    /// Applies a hub preset on top of what is installed: its features join
+    /// the installed set with their enable keys switched on, so they work
+    /// right away, and every feature already installed stays. Presets combine
+    /// this way, and nothing the person set up disappears behind a bundle.
     func apply(_ preset: FeaturePreset) {
-        replaceAvailable(with: preset.features, enabling: preset.enableKeys)
+        let installed = Set(AppFeature.allCases.filter(\.isAvailable))
+        replaceAvailable(with: installed.union(preset.features), enabling: preset.enableKeys)
     }
 
     /// Replaces the installed set after the first-run picker. It uses the same
