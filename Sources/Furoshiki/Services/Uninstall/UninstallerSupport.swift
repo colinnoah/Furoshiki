@@ -902,7 +902,7 @@ enum UninstallerSupport {
     /// Furoshiki's own identifiers, among the protected ones.
     private static func isOwnBundleID(_ id: String) -> Bool {
         let lowered = id.lowercased()
-        return lowered == "com.furoshiki" || lowered.hasPrefix("io.github.colinnoah.furoshiki.")
+        return lowered == "io.github.colinnoah.furoshiki" || lowered.hasPrefix("io.github.colinnoah.furoshiki.")
             || lowered.hasPrefix("vorss.")
     }
 
