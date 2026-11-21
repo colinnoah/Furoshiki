@@ -21,6 +21,7 @@ enum SystemMonitorPlanTests {
     enum PanelSectionID { case keepAwake, system, network, disk, power }
 
     class PanelFixture {
+        var showsFeatureManager = false
         var selectedMetric: MetricDetailKind?
         var activeSection = PanelSectionID.keepAwake
     }
@@ -130,5 +131,14 @@ enum SystemMonitorPlanTests {
         suite.expect(monitor.currentPlan(defaults: defaults).needPeripheralBattery,
                      "the island's Battery detail still lists peripherals with the Power row hidden")
         monitor.notchDetailNeeds = .none
+
+        panel.selectedMetric = nil
+        panel.activeSection = .system
+        panel.showsFeatureManager = true
+        suite.expect(panel.monitorNeeds == .none,
+                     "the feature list in the panel samples nothing while it covers the sections")
+        panel.showsFeatureManager = false
+        suite.expect(panel.monitorNeeds != .none,
+                     "closing the feature list resumes the section's sampling")
     }
 }
