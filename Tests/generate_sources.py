@@ -2878,7 +2878,7 @@ def main():
               "    var exportSize:", "    var exportCanvasSize:", "    func exportSize(for",
               "    func setExportFormat(", "    func setGIFScalePercent(", "    func setGIFFrameRate(",
               "    func beginClipboardPublication()", "    func completeClipboardPublication(", "    func cancelExport()"])
-          + "var clipboardPublication: RecorderClipboardPublication?\nvar exporter: RecorderExporter?\nvar shareTask: Task<Void, Never>?\n"
+          + "var clipboardPublication: RecorderClipboardPublication?\nvar exporter: RecorderExporter?\n"
           + "var request: (RecorderExporter.Output, URL)?\nvar completion: ((RecorderExporter.Failure?) -> Void)?\n"
           + "func export(_ output: RecorderExporter.Output, to destination: URL, rememberDestination: Bool, completion: @escaping (RecorderExporter.Failure?) -> Void) { request = (output, destination); self.completion = completion }\n"
           + "}\nfinal class RecorderExportActionFixture {\n"
