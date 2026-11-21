@@ -2161,35 +2161,10 @@ def main():
                                    "    func suspend()", "    private func cancelSession()",
                                    "    enum Outcome:"])
           + "}\n}\n")
-    write("ScreenshotShareCompletion.swift", "import Foundation\n"
-          + "extension ScreenshotShareCompletionTests {\nfinal class Controller: State {\n"
-          + "".join(declaration(preview, prefix).replace("private func", "func", 1)
-                    for prefix in ["    func shareLink()", "    private func performShare(",
-                                   "    private func copySharedLink()", "    private func scheduleAutoDismiss(",
-                                   "    private func copyText()"])
-          + "}\nfinal class Editor: EditorState {\n"
-          + declaration("Sources/Furoshiki/Services/QuickTools/ScreenshotEditorController.swift",
-                        "    func share(duration:")
-          + "}\n@MainActor final class CreationGate: CreationState {\n"
-          + declaration("Sources/Furoshiki/Services/QuickTools/ScreenshotShareService.swift",
-                        "    func createLink(pngData:")
-          + "}\n}\n")
     screenshot_service = "Sources/Furoshiki/Services/QuickTools/ScreenshotService.swift"
     write("ScreenshotAutoCopy.swift", "import Foundation\nextension ScreenshotAutoCopyTests {\n"
           + "@MainActor final class Service: State {\n"
           + declaration(screenshot_service, "    private func autoCopy(").replace("private func", "func", 1)
-          + "}\n}\n")
-    write("ScreenshotShortcutCompletion.swift", "import Foundation\n"
-          + "extension ScreenshotShareCompletionTests {\n@MainActor final class Uploader: UploadState {\n"
-          + "".join(declaration(screenshot_service, prefix).replace("private func", "func", 1)
-                    .replace("uploadShortcutEnabled()", "uploadShortcutEnabled(in: defaults)")
-                    .replace("retainsLatestCapture()", "retainsLatestCapture(in: defaults)")
-                    for prefix in ["    private func uploadLastCapture()", "    private func copyUploadedLink(",
-                                   "    func openEditor(with", "    func editorDidClose(",
-                                   "    private func invalidateLatestCaptureUploads()",
-                                   "    private func beginLatestCapture(", "    private func discardLatestCapture(",
-                                   "    private func withholdLatestCapture()", "    private func syncLatestCapture(",
-                                   "    func afterAutoCopy("])
           + "}\n}\n")
     write("ScreenshotAutoShelf.swift", "import Foundation\n"
           + "extension ScreenshotAutoShelfTests {\n@MainActor final class Service: State {\n"

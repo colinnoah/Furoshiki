@@ -107,8 +107,8 @@ Reorder or hide panel sections, choose a compact layout, and export settings to 
 ### Capture and create
 
 - **Screen capture.** Switch between screenshots, recording, text recognition and color picking in one selector with a pixel magnifier.
-- **Screenshot.** Capture an area, window, screen or scrolling page. Annotate, crop, redact, add backgrounds and watermarks, pin captures, send them through the Share menu or share an expiring link.
-- **Screen recording.** Record with separate system-audio and microphone tracks. Trim, cut, add automatic zooms, blur private details and export video or GIFs, or share an expiring link.
+- **Screenshot.** Capture an area, window, screen or scrolling page. Annotate, crop, redact, add backgrounds and watermarks, pin captures, or send them through the Share menu.
+- **Screen recording.** Record with separate system-audio and microphone tracks. Trim, cut, add automatic zooms, blur private details and export video or GIFs.
 - **Camera preview.** Check your camera in a floating mirror or Dynamic Island before a call.
 - **Copy text from screen.** Recognize text offline from any screen area, or read a QR code.
 - **Color picker.** Copy a screen color as HEX, RGB, HSL or SwiftUI code.
@@ -144,7 +144,7 @@ To remove Furoshiki completely, including its settings and permissions:
 
 ## Private by default
 
-Furoshiki is local-first, with no account, analytics or tracking. The network is touched only by things you can see: update checks against this repository's GitHub releases, the speed test, Homebrew actions, optional online lyric lookup and the optional AI price list. Temporary screenshot or recording links and in-app feedback need a server, which this project does not run yet, so they are inactive. The full story is in the [privacy notes](docs/PRIVACY.md).
+Furoshiki is local-first, with no account, analytics or tracking. The network is touched only by things you can see: update checks against this repository's GitHub releases, the speed test, Homebrew actions, optional online lyric lookup and the optional AI price list. Furoshiki runs no server of its own: there are no upload links, and feedback opens a GitHub issue form in your browser. The full story is in the [privacy notes](docs/PRIVACY.md).
 
 Every permission is optional. The app explains each one in plain words, shows which features use it, and tells you when a permission you granted is no longer needed. See the [permissions guide](docs/PERMISSIONS.md).
 

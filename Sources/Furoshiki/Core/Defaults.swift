@@ -754,15 +754,8 @@ enum DefaultsKey {
     static let screenshotAddToShelf = "screenshotAddToShelf"
     static let screenshotPreviewPosition = "screenshotPreviewPosition"
     static let screenshotPreviewTakesFocus = "screenshotPreviewTakesFocus"
-    static let screenshotUploadShortcutEnabled = "screenshotUploadShortcutEnabled"
-    static let screenshotUploadShortcut = "screenshotUploadShortcut"
-    static let screenshotUploadDuration = "screenshotUploadDuration"
     static let screenshotPreviewEnabled = "screenshotPreviewEnabled"
     static let screenshotPreviewDuration = "screenshotPreviewDuration"
-    static let screenshotSharingEnabled = "screenshotSharingEnabled"
-    // Developer-only endpoint for an isolated test tunnel. The official app
-    // ignores it, and settings backups must never carry it to another Mac.
-    static let screenshotSharingDeveloperEndpoint = "screenshotSharingDeveloperEndpoint"
     static let panelUtilityScreenshot = "panelUtilityScreenshot"
 
     // Screen recorder - records the picked area, keeps the untouched master
@@ -1991,12 +1984,8 @@ enum Defaults {
         DefaultsKey.screenshotAddToShelf: false,
         DefaultsKey.screenshotPreviewPosition: ScreenshotSupport.QuickPreviewPosition.automatic.rawValue,
         DefaultsKey.screenshotPreviewTakesFocus: true,
-        DefaultsKey.screenshotUploadShortcutEnabled: false,
-        DefaultsKey.screenshotUploadShortcut: GlobalShortcut.screenshotUploadDefault.storageValue,
-        DefaultsKey.screenshotUploadDuration: ScreenshotShareDuration.oneHour.rawValue,
         DefaultsKey.screenshotPreviewEnabled: true,
         DefaultsKey.screenshotPreviewDuration: ScreenshotSupport.defaultConfirmationPreviewDuration,
-        DefaultsKey.screenshotSharingEnabled: true,
         DefaultsKey.panelUtilityScreenshot: true,
         DefaultsKey.windowLayoutShortcutsEnabled: false,
         DefaultsKey.windowDirectionalEnabled: false,
