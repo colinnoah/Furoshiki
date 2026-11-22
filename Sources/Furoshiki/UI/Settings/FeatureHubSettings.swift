@@ -16,7 +16,6 @@ struct FeatureHubSettings: View {
     @ObservedObject private var router = SettingsRouter.shared
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var tab: Tab = .features
-    @State private var confirmingPreset: FeaturePreset?
     /// Tracks the feature-target request currently being revealed, so a
     /// delayed retry from an older request cannot act after a newer one has
     /// already taken over (same convention as `SettingsSectionFocusModifier`).
@@ -116,19 +115,6 @@ struct FeatureHubSettings: View {
         .animation(nil, value: features.needsRestartToUnload)
         .animation(nil, value: neverUsed)
         .animation(nil, value: recentlyUninstalled)
-        .alert(confirmingPreset.map { presetName($0) } ?? "",
-               isPresented: Binding(get: { confirmingPreset != nil },
-                                    set: { if !$0 { confirmingPreset = nil } }),
-               presenting: confirmingPreset) { preset in
-            Button(hub.presetConfirmApply) {
-                withAnimation(.easeOut(duration: 0.22)) {
-                    FeatureRuntime.shared.apply(preset)
-                }
-            }
-            Button(hub.presetConfirmCancel, role: .cancel) {}
-        } message: { preset in
-            Text(String(format: hub.presetConfirmFormat, presetName(preset)))
-        }
     }
 
     /// Consumes a pending Feature Hub target: switches off the Permissions
@@ -300,9 +286,10 @@ struct FeatureHubSettings: View {
         }
     }
 
-    /// Three one-click starting points. Nobody arrives wanting 67 decisions;
-    /// a preset shapes the app in one move and everything else stays one
-    /// click away in the list below.
+    /// Three one-click bundles. Nobody arrives wanting 67 decisions; a preset
+    /// adds a whole way of working in one move, keeps everything already
+    /// installed, and the list below stays one click away. Nothing is
+    /// removed, so it needs no confirmation.
     private var presetsCard: some View {
         SettingsCard {
             DisclosureGroup(hub.presetsTitle, isExpanded: $presetsExpanded) {
@@ -313,7 +300,9 @@ struct FeatureHubSettings: View {
                                        name: presetName(preset),
                                        caption: presetDescription(preset),
                                        applyTitle: hub.presetApplyButton) {
-                                confirmingPreset = preset
+                                withAnimation(.easeOut(duration: 0.22)) {
+                                    FeatureRuntime.shared.apply(preset)
+                                }
                             }
                         }
                     }

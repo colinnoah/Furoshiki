@@ -91,6 +91,10 @@ struct MenuPanelView: View {
     @State private var updateBannerHeight: CGFloat = 0
     @State private var selectedSection: PanelSectionID = PanelLayout.order.first ?? .keepAwake
     @State private var selectedMetric: MetricDetailKind?
+    /// The feature manager replaces the sections while it is open, the way a
+    /// metric detail does, so every feature can be managed from the panel.
+    @State private var showsFeatureManager = false
+    @State private var managerContentHeight: CGFloat = 0
     @FocusState private var focusedSection: PanelSectionID?
 
     /// Cap the panel to the usable screen height so it never overflows the menu
@@ -110,6 +114,8 @@ struct MenuPanelView: View {
         Group {
             if let notchSize {
                 embeddedPanel(size: notchSize)
+            } else if showsFeatureManager {
+                featureManagerPanel
             } else if selectedMetric != nil {
                 metricPanel
             } else {
@@ -122,6 +128,8 @@ struct MenuPanelView: View {
             syncMonitorSampling()
         }
         .onReceive(NotificationCenter.default.publisher(for: .menuPanelWillShow)) { _ in
+            // Each opening starts on the sections again.
+            showsFeatureManager = false
             syncMonitorSampling()
         }
         .onDisappear {
@@ -146,6 +154,7 @@ struct MenuPanelView: View {
     }
 
     private var monitorNeeds: SystemMonitorPanelNeeds {
+        if showsFeatureManager { return .none }
         if let selectedMetric {
             return selectedMetric.monitorNeeds
         }
@@ -169,10 +178,12 @@ struct MenuPanelView: View {
             selectedMetric = nil
         case .section(let section):
             guard isSectionVisible(section) else { return }
+            showsFeatureManager = false
             selectedMetric = nil
             selectedSection = section
             focusedSection = section
         case .metric(let metric):
+            showsFeatureManager = false
             focusedSection = nil
             selectedMetric = metric
             selectedSection = metric.panelSection
@@ -185,13 +196,15 @@ struct MenuPanelView: View {
     private func embeddedPanel(size: CGSize) -> some View {
         VStack(spacing: 12) {
             Group {
-                if let selectedMetric { metricNavigationHeader(selectedMetric) }
+                if showsFeatureManager { featureManagerHeader }
+                else if let selectedMetric { metricNavigationHeader(selectedMetric) }
                 else { sectionNavigation }
             }
             .frame(height: 38)
             OverlayScrollView(measuredHeight: $navigableContentHeight) {
                 Group {
-                    if let selectedMetric { MetricDetailView(kind: selectedMetric) }
+                    if showsFeatureManager { PanelFeatureManagerView() }
+                    else if let selectedMetric { MetricDetailView(kind: selectedMetric) }
                     else { section(for: activeSection, collapsible: false) }
                 }
                 .frame(width: size.width)
@@ -246,6 +259,64 @@ struct MenuPanelView: View {
         .padding(12)
         .frame(width: 332, height: metricPanelHeight)
         .panelGlassSurface()
+    }
+
+    private var featureManagerPanel: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            UpdateBanner()
+                .reportHeight($updateBannerHeight)
+            header
+            featureManagerHeader
+            OverlayScrollView(measuredHeight: $managerContentHeight) {
+                PanelFeatureManagerView()
+                    .frame(width: 308)
+            }
+            .frame(width: 308, height: managerScrollHeight)
+
+            footer
+        }
+        .padding(12)
+        .frame(width: 332, height: managerPanelHeight)
+        .panelGlassSurface()
+    }
+
+    private var managerScrollHeight: CGFloat {
+        let measured = managerContentHeight == 0 ? 520 : managerContentHeight
+        return min(measured, max(80, maxHeight - navigableChromeHeight))
+    }
+
+    private var managerPanelHeight: CGFloat {
+        min(maxHeight, max(220, managerScrollHeight + navigableChromeHeight))
+    }
+
+    private var featureManagerHeader: some View {
+        HStack(spacing: 8) {
+            Button {
+                showsFeatureManager = false
+            } label: {
+                Image(systemName: "chevron.left")
+                    .font(.system(size: 11, weight: .semibold))
+                    .frame(width: 24, height: 24)
+                    .contentShape(RoundedRectangle(cornerRadius: 7, style: .continuous))
+            }
+            .buttonStyle(.plain)
+            .foregroundStyle(.secondary)
+            .background(
+                RoundedRectangle(cornerRadius: 7, style: .continuous)
+                    .fill(PanelSurface.cardFill(for: colorScheme))
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 7, style: .continuous)
+                    .strokeBorder(PanelSurface.border(for: colorScheme), lineWidth: 0.7)
+            )
+            .help(l10n.s.obBack)
+            .accessibilityLabel(l10n.s.obBack)
+
+            Label(FeatureStrings.hub(l10n.language).pageTitle, systemImage: "square.grid.2x2")
+                .font(.system(size: 12.5, weight: .semibold))
+                .lineLimit(1)
+                .frame(maxWidth: .infinity, alignment: .leading)
+        }
     }
 
     /// The major sections in the user's saved order. Reading `sectionOrderRaw`
@@ -466,6 +537,17 @@ struct MenuPanelView: View {
                 appDelegate()?.openSettingsWindow()
             }
 
+            footerButton(FeatureStrings.hub(l10n.language).pageTitle,
+                         systemImage: "square.grid.2x2",
+                         horizontalPadding: 7,
+                         isActive: showsFeatureManager) {
+                showsFeatureManager.toggle()
+                if showsFeatureManager {
+                    selectedMetric = nil
+                    focusedSection = nil
+                }
+            }
+
             footerButton(l10n.s.panelQuit,
                          systemImage: "power",
                          horizontalPadding: 7) {
@@ -479,6 +561,7 @@ struct MenuPanelView: View {
 
     private func footerButton(_ title: String, systemImage: String,
                               horizontalPadding: CGFloat = 8,
+                              isActive: Bool = false,
                               action: @escaping () -> Void) -> some View {
         Button(action: action) {
             Label(title, systemImage: systemImage)
@@ -500,7 +583,8 @@ struct MenuPanelView: View {
                 .contentShape(RoundedRectangle(cornerRadius: 7, style: .continuous))
         }
         .buttonStyle(.plain)
-        .foregroundStyle(.secondary)
+        .foregroundStyle(isActive ? Color.accentColor : Color.secondary)
+        .accessibilityAddTraits(isActive ? .isSelected : [])
     }
 }
 

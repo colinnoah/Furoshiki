@@ -345,6 +345,7 @@ if (( TEST )); then
         Sources/Furoshiki/Core/FeatureCatalog.swift
         Sources/Furoshiki/Core/FeaturePresets.swift
         Sources/Furoshiki/Core/FeatureHubStrings.swift
+        Sources/Furoshiki/Core/TourStrings.swift
         Sources/Furoshiki/Core/MixerScreenSharingStrings.swift
         Sources/Furoshiki/Core/ShortcutSettingsStrings.swift
         Sources/Furoshiki/Core/SwitcherShortcutStrings.swift

@@ -15,7 +15,7 @@ enum OnboardingMode {
 }
 
 enum OnboardingStep {
-    case welcome, purpose, permissions, done
+    case welcome, purpose, permissions, tour, done
 }
 
 struct OnboardingView: View {
@@ -27,20 +27,18 @@ struct OnboardingView: View {
     /// app when Screen Recording is granted mid-onboarding.
     @AppStorage(DefaultsKey.onboardingStep) private var index = 0
     @State private var selectedFeatures: Set<AppFeature>
-    @State private var selectedPreset: FeaturePreset?
+    /// The page inside the tour step. Continue and Back walk through it
+    /// before they leave the step, so the tour is clicked through like the
+    /// rest of the setup.
+    @State private var tourPage = 0
 
     init(mode: OnboardingMode = .full, onFinish: @escaping () -> Void) {
         self.mode = mode
         self.onFinish = onFinish
-        let defaults = UserDefaults.standard
-        let selectionWasApplied = defaults.bool(forKey: DefaultsKey.hasOnboarded)
-            || defaults.integer(forKey: DefaultsKey.onboardingStep) >= 2
         // Startup has already installed the first-run preset and any features
         // declared in the settings file. Show the selection Continue will save.
         let features = Set(AppFeature.allCases.filter(\.isAvailable))
         _selectedFeatures = State(initialValue: features)
-        _selectedPreset = State(initialValue: !selectionWasApplied && features == FeaturePreset.essential.features
-            ? .essential : nil)
     }
 
     private var setupPermissions: [AppPermission] {
@@ -48,7 +46,7 @@ struct OnboardingView: View {
         return [.accessibility, .screenRecording].filter { permissions.contains($0) }
     }
     private var steps: [OnboardingStep] {
-        [.welcome, .purpose, .permissions, .done]
+        [.welcome, .purpose, .permissions, .tour, .done]
     }
     private var current: OnboardingStep { steps[min(max(0, index), steps.count - 1)] }
 
@@ -82,10 +80,12 @@ struct OnboardingView: View {
     private var content: some View {
         switch current {
         case .welcome: WelcomeStep()
-        case .purpose: PurposeStep(selectedFeatures: $selectedFeatures,
-                                   selectedPreset: $selectedPreset)
+        case .purpose: PurposeStep(selectedFeatures: $selectedFeatures)
         case .permissions: SelectedPermissionsStep(features: selectedFeatures,
                                                    permissions: setupPermissions)
+        case .tour: TourStep(page: $tourPage) {
+            withAnimation(.easeInOut(duration: 0.2)) { index += 1 }
+        }
         case .done: DoneStep()
         }
     }
@@ -93,7 +93,14 @@ struct OnboardingView: View {
     private var navigationBar: some View {
         HStack {
             Button(l10n.s.obBack) {
-                withAnimation(.easeInOut(duration: 0.2)) { index = max(0, index - 1) }
+                withAnimation(.easeInOut(duration: 0.2)) {
+                    if current == .tour && tourPage > 0 {
+                        tourPage -= 1
+                    } else {
+                        index = max(0, index - 1)
+                        if current == .tour { tourPage = TourStep.pageCount - 1 }
+                    }
+                }
             }
             .disabled(index == 0)
 
@@ -114,13 +121,18 @@ struct OnboardingView: View {
                 if index >= steps.count - 1 {
                     index = 0
                     onFinish()
+                } else if current == .tour && tourPage < TourStep.pageCount - 1 {
+                    withAnimation(.easeInOut(duration: 0.25)) { tourPage += 1 }
                 } else {
                     if current == .purpose {
                         FeatureRuntime.shared.replaceAvailable(
                             with: selectedFeatures,
-                            enabling: selectedPreset?.enableKeys ?? [])
+                            enabling: FeaturePreset.allCases
+                                .filter { $0.installableFeatures.isSubset(of: selectedFeatures) }
+                                .flatMap(\.enableKeys))
                     }
                     withAnimation(.easeInOut(duration: 0.2)) { index += 1 }
+                    if current == .tour { tourPage = 0 }
                 }
             }
             .keyboardShortcut(.defaultAction)
@@ -208,13 +220,17 @@ private struct WelcomeStep: View {
 
 // MARK: - Purpose step
 
-/// Presets are quick starts, while the catalog below allows an exact choice.
-/// Both use the Features hub's own names and descriptions so setup stays
-/// consistent with what the person can change later.
+/// Presets are quick starts that add to the selection instead of replacing
+/// it: a preset reads as ticked while all of its features are selected,
+/// ticking it adds them and unticking removes only its own. Features picked
+/// by hand or by another preset stay, so the person can combine bundles and
+/// switch between everything they installed. The catalog below allows an
+/// exact choice, and its header can select every installable feature at
+/// once. Both use the Features hub's own names and descriptions so setup
+/// stays consistent with what the person can change later.
 private struct PurposeStep: View {
     @ObservedObject private var l10n = L10n.shared
     @Binding var selectedFeatures: Set<AppFeature>
-    @Binding var selectedPreset: FeaturePreset?
 
     private var hub: FeatureHubStrings { FeatureStrings.hub(l10n.language) }
 
@@ -241,6 +257,7 @@ private struct PurposeStep: View {
                             selectedFeatures.count, FeatureRuntime.shared.installableCount))
                     .font(.caption)
                     .foregroundStyle(.tertiary)
+                selectAllButton
             }
             .padding(.horizontal, 28)
 
@@ -288,11 +305,33 @@ private struct PurposeStep: View {
         }
     }
 
+    /// Every feature this Mac can install, the same gate the catalog rows use.
+    private var installableFeatures: Set<AppFeature> {
+        Set(AppFeature.allCases.filter { $0.installBlockedReason == nil })
+    }
+
+    private var allSelected: Bool {
+        installableFeatures.isSubset(of: selectedFeatures)
+    }
+
+    /// Selects every installable feature, or clears the selection once all
+    /// of them are chosen, with the hub's own install-all wording.
+    private var selectAllButton: some View {
+        Button(allSelected ? hub.uninstallAllButton : hub.installAllButton) {
+            selectedFeatures = allSelected ? [] : installableFeatures
+        }
+        .buttonStyle(.borderless)
+        .font(.caption.weight(.semibold))
+    }
+
     private func bundleCard(_ preset: FeaturePreset) -> some View {
-        let selected = selectedPreset == preset
+        let selected = preset.installableFeatures.isSubset(of: selectedFeatures)
         return Button {
-            selectedPreset = preset
-            selectedFeatures = preset.features
+            if selected {
+                selectedFeatures.subtract(preset.features)
+            } else {
+                selectedFeatures.formUnion(preset.installableFeatures)
+            }
         } label: {
             HStack(spacing: 12) {
                 Image(systemName: preset.symbolName)
@@ -310,11 +349,9 @@ private struct PurposeStep: View {
                         .fixedSize(horizontal: false, vertical: true)
                 }
                 Spacer()
-                if selected {
-                    Image(systemName: "checkmark.circle.fill")
-                        .foregroundStyle(Color.accentColor)
-                        .accessibilityHidden(true)
-                }
+                Image(systemName: selected ? "checkmark.circle.fill" : "circle")
+                    .foregroundStyle(selected ? Color.accentColor : Color.secondary.opacity(0.45))
+                    .accessibilityHidden(true)
             }
             .padding(.horizontal, 14)
             .padding(.vertical, 10)
@@ -332,7 +369,7 @@ private struct PurposeStep: View {
         .buttonStyle(.plain)
         .accessibilityLabel("\(name(preset)). \(caption(preset))")
         .accessibilityAddTraits(selected ? .isSelected : [])
-        .animation(.easeOut(duration: 0.15), value: selectedPreset)
+        .animation(.easeOut(duration: 0.15), value: selected)
     }
 
     private func featureCard(_ feature: AppFeature) -> some View {
@@ -343,7 +380,6 @@ private struct PurposeStep: View {
         // hub row does it.
         let blocked = feature.installBlockedReason
         let card = Button {
-            selectedPreset = nil
             if selected {
                 selectedFeatures.remove(feature)
                 if feature == .notch {
@@ -417,6 +453,8 @@ private struct PurposeStep: View {
 
 private struct SelectedPermissionsStep: View {
     @ObservedObject private var l10n = L10n.shared
+    @ObservedObject private var permissionState = Permissions.shared
+    @ObservedObject private var batchRequest = PermissionBatchRequest.shared
     @State private var showingOtherPermissions = false
     let features: Set<AppFeature>
     let permissions: [AppPermission]
@@ -431,6 +469,28 @@ private struct SelectedPermissionsStep: View {
             StepHeader(icon: "key.horizontal.fill",
                        title: hub.tabPermissions,
                        subtitle: hub.permissionsIntro)
+
+            // One button for everything still missing. The flow asks one
+            // permission at a time, so dialogs and System Settings panes
+            // never stack up.
+            if batchRequest.isRunning || PermissionBatchRequest.hasRequestablePermissions {
+                Button {
+                    PermissionBatchRequest.shared.start()
+                } label: {
+                    HStack(spacing: 8) {
+                        if batchRequest.isRunning {
+                            ProgressView().controlSize(.small)
+                        } else {
+                            Image(systemName: "checkmark.shield")
+                        }
+                        Text(hub.requestAllButton)
+                    }
+                    .frame(minWidth: 180)
+                }
+                .buttonStyle(.borderedProminent)
+                .controlSize(.large)
+                .disabled(batchRequest.isRunning)
+            }
 
             VStack(alignment: .leading, spacing: 12) {
                 Text(hub.onboardingSelectedPermissionsTitle)
@@ -548,6 +608,332 @@ private struct DoneStep: View {
     }
 }
 
+// MARK: - Step 4: tour
+
+/// A short click-through of where things live: the menu bar icon, the panel
+/// tabs, the feature manager and Settings. Each page draws a small sketch of
+/// the real control with the part to look at outlined.
+struct TourStep: View {
+    static let pageCount = 4
+
+    @Binding var page: Int
+    var onSkip: () -> Void
+    @ObservedObject private var l10n = L10n.shared
+
+    private var text: TourStrings { FeatureStrings.tour(l10n.language) }
+
+    private var pageTitle: String {
+        switch page {
+        case 0: return text.tourMenuBarTitle
+        case 1: return text.tourTabsTitle
+        case 2: return text.tourFeaturesTitle
+        default: return text.tourSettingsTitle
+        }
+    }
+
+    private var pageBody: String {
+        switch page {
+        case 0: return text.tourMenuBarBody
+        case 1: return text.tourTabsBody
+        case 2: return text.tourFeaturesBody
+        default: return text.tourSettingsBody
+        }
+    }
+
+    var body: some View {
+        VStack(spacing: 18) {
+            StepHeader(icon: "map.fill", title: text.tourTitle, subtitle: text.tourSubtitle)
+
+            TourIllustration(page: page)
+                .frame(width: 420, height: 196)
+                .id(page)
+                .transition(.opacity.combined(with: .scale(scale: 0.98)))
+                .accessibilityHidden(true)
+
+            VStack(spacing: 6) {
+                Text(String(format: text.tourStepFormat, page + 1, Self.pageCount))
+                    .font(.system(size: 10.5, weight: .semibold))
+                    .foregroundStyle(Color.accentColor)
+                Text(pageTitle)
+                    .font(.system(size: 15, weight: .bold))
+                Text(pageBody)
+                    .font(.system(size: 12))
+                    .foregroundStyle(.secondary)
+                    .multilineTextAlignment(.center)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .frame(minHeight: 48, alignment: .top)
+            }
+            .padding(.horizontal, 56)
+            .accessibilityElement(children: .combine)
+
+            HStack(spacing: 8) {
+                ForEach(0..<Self.pageCount, id: \.self) { index in
+                    Button {
+                        withAnimation(.easeInOut(duration: 0.25)) { page = index }
+                    } label: {
+                        Circle()
+                            .fill(index == page ? Color.accentColor : Color.primary.opacity(0.18))
+                            .frame(width: 8, height: 8)
+                            .padding(4)
+                            .contentShape(Circle())
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityLabel(String(format: text.tourStepFormat, index + 1, Self.pageCount))
+                }
+            }
+
+            Button(text.tourSkip, action: onSkip)
+                .buttonStyle(.link)
+                .font(.system(size: 11.5))
+        }
+        .padding(.bottom, 16)
+    }
+}
+
+/// The sketch for one tour page. Only shapes and the app's own symbols, so it
+/// follows the language, the appearance and the accent color.
+private struct TourIllustration: View {
+    let page: Int
+    @ObservedObject private var l10n = L10n.shared
+
+    var body: some View {
+        ZStack {
+            RoundedRectangle(cornerRadius: 16, style: .continuous)
+                .fill(Theme.spaceGradient)
+            switch page {
+            case 0: menuBarSketch
+            case 1: panelSketch(highlight: .tabs)
+            case 2: panelSketch(highlight: .features)
+            default: panelSketch(highlight: .settings)
+            }
+        }
+        .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+    }
+
+    // MARK: Menu bar
+
+    private var menuBarSketch: some View {
+        VStack(spacing: 0) {
+            HStack(spacing: 12) {
+                Image(systemName: "apple.logo")
+                    .font(.system(size: 11, weight: .semibold))
+                Capsule().frame(width: 34, height: 5).opacity(0.35)
+                Capsule().frame(width: 26, height: 5).opacity(0.35)
+                Spacer()
+                Image(systemName: "wifi").font(.system(size: 10.5))
+                Image(systemName: "battery.75").font(.system(size: 11))
+                BrandMark(width: 24, tint: .white)
+                    .frame(width: 26, height: 16)
+                    .tourHighlight(cornerRadius: 6)
+                Text(Date(), format: .dateTime.hour().minute()).font(.system(size: 10.5, weight: .semibold))
+            }
+            .foregroundStyle(.white)
+            .padding(.horizontal, 14)
+            .frame(height: 26)
+            .background(Color.black.opacity(0.35))
+
+            HStack {
+                Spacer()
+                VStack(alignment: .trailing, spacing: 0) {
+                    Image(systemName: "cursorarrow.click.2")
+                        .font(.system(size: 20, weight: .medium))
+                        .foregroundStyle(.white)
+                        .shadow(radius: 2)
+                        .padding(.trailing, 62)
+                        .padding(.top, 2)
+                    miniPanel(highlight: nil)
+                        .frame(width: 150, height: 120)
+                        .padding(.trailing, 40)
+                        .padding(.top, 2)
+                }
+            }
+            Spacer(minLength: 0)
+        }
+    }
+
+    // MARK: Panel
+
+    private enum Highlight { case tabs, features, settings }
+
+    private func panelSketch(highlight: Highlight) -> some View {
+        HStack(spacing: 18) {
+            miniPanel(highlight: highlight)
+                .frame(width: 190, height: 168)
+            if highlight == .settings {
+                settingsWindowSketch
+                    .frame(width: 168, height: 128)
+            }
+        }
+    }
+
+    private var tabSymbols: [String] {
+        Array(PanelSectionID.allCases.prefix(7).map(\.symbolName))
+    }
+
+    private func miniPanel(highlight: Highlight?) -> some View {
+        let s = l10n.s
+        let hub = FeatureStrings.hub(l10n.language)
+        let compact = highlight == nil
+        return VStack(spacing: compact ? 5 : 7) {
+            BrandMark(width: compact ? 18 : 24, tint: .white)
+                .frame(height: compact ? 10 : 14)
+            HStack(spacing: 0) {
+                ForEach(Array(tabSymbols.enumerated()), id: \.offset) { index, symbol in
+                    Image(systemName: symbol)
+                        .font(.system(size: compact ? 6.5 : 8.5, weight: .semibold))
+                        .foregroundStyle(index == 0 ? Color.accentColor : Color.white.opacity(0.7))
+                        .frame(maxWidth: .infinity)
+                }
+            }
+            .frame(height: compact ? 13 : 18)
+            .background(RoundedRectangle(cornerRadius: 5, style: .continuous).fill(Color.white.opacity(0.08)))
+            .tourHighlight(cornerRadius: 6, active: highlight == .tabs)
+
+            VStack(spacing: compact ? 4 : 6) {
+                ForEach(0..<(compact ? 3 : 4), id: \.self) { row in
+                    HStack(spacing: 5) {
+                        Circle().fill(Color.accentColor.opacity(0.8))
+                            .frame(width: compact ? 5 : 7, height: compact ? 5 : 7)
+                        Capsule().fill(Color.white.opacity(0.35))
+                            .frame(width: CGFloat([58, 44, 66, 50][row]) * (compact ? 0.7 : 1), height: compact ? 3 : 4)
+                        Spacer(minLength: 0)
+                        if highlight == .features {
+                            Image(systemName: "gearshape")
+                                .font(.system(size: 7))
+                                .foregroundStyle(.white.opacity(0.7))
+                        }
+                        Capsule()
+                            .fill(row == 2 ? Color.white.opacity(0.25) : Color.accentColor)
+                            .frame(width: compact ? 11 : 15, height: compact ? 6 : 8)
+                            .overlay(alignment: row == 2 ? .leading : .trailing) {
+                                Circle().fill(.white)
+                                    .frame(width: compact ? 4.5 : 6, height: compact ? 4.5 : 6)
+                                    .padding(1)
+                            }
+                    }
+                }
+            }
+            .padding(compact ? 5 : 7)
+            .background(RoundedRectangle(cornerRadius: 6, style: .continuous).fill(Color.white.opacity(0.06)))
+
+            if !compact {
+                HStack(spacing: 4) {
+                    footerChip(s.panelSettings, symbol: "gearshape", active: highlight == .settings)
+                    footerChip(hub.pageTitle, symbol: "square.grid.2x2", active: highlight == .features)
+                    footerChip(s.panelQuit, symbol: "power", active: false)
+                }
+            }
+        }
+        .padding(compact ? 7 : 9)
+        .background(
+            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                .fill(Color.black.opacity(0.45))
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                .strokeBorder(Color.white.opacity(0.16), lineWidth: 0.7)
+        )
+    }
+
+    private func footerChip(_ title: String, symbol: String, active: Bool) -> some View {
+        HStack(spacing: 2) {
+            Image(systemName: symbol)
+            Text(title).lineLimit(1).minimumScaleFactor(0.6)
+        }
+        .font(.system(size: 7, weight: .medium))
+        .foregroundStyle(active ? Color.white : Color.white.opacity(0.7))
+        .frame(maxWidth: .infinity)
+        .frame(height: 15)
+        .background(
+            RoundedRectangle(cornerRadius: 4, style: .continuous)
+                .fill(active ? Color.accentColor.opacity(0.55) : Color.white.opacity(0.08))
+        )
+        .tourHighlight(cornerRadius: 5, active: active)
+    }
+
+    private var settingsWindowSketch: some View {
+        HStack(spacing: 0) {
+            VStack(alignment: .leading, spacing: 6) {
+                HStack(spacing: 3) {
+                    ForEach([Color.red, .yellow, .green], id: \.self) { color in
+                        Circle().fill(color.opacity(0.85)).frame(width: 5, height: 5)
+                    }
+                }
+                .padding(.bottom, 4)
+                ForEach(0..<6, id: \.self) { row in
+                    HStack(spacing: 4) {
+                        RoundedRectangle(cornerRadius: 2)
+                            .fill(row == 1 ? Color.accentColor : Color.white.opacity(0.4))
+                            .frame(width: 7, height: 7)
+                        Capsule().fill(Color.white.opacity(row == 1 ? 0.7 : 0.3))
+                            .frame(width: CGFloat([30, 36, 26, 32, 28, 34][row]), height: 3.5)
+                    }
+                }
+                Spacer(minLength: 0)
+            }
+            .padding(8)
+            .frame(width: 62, alignment: .leading)
+            .frame(maxHeight: .infinity)
+            .background(Color.white.opacity(0.06))
+
+            VStack(alignment: .leading, spacing: 7) {
+                Capsule().fill(Color.white.opacity(0.7)).frame(width: 52, height: 5)
+                ForEach(0..<4, id: \.self) { row in
+                    HStack {
+                        Capsule().fill(Color.white.opacity(0.3))
+                            .frame(width: CGFloat([46, 38, 52, 34][row]), height: 3.5)
+                        Spacer(minLength: 0)
+                        Capsule().fill(row == 3 ? Color.white.opacity(0.25) : Color.accentColor)
+                            .frame(width: 13, height: 7)
+                    }
+                }
+                Spacer(minLength: 0)
+            }
+            .padding(10)
+        }
+        .background(
+            RoundedRectangle(cornerRadius: 10, style: .continuous)
+                .fill(Color.black.opacity(0.45))
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 10, style: .continuous)
+                .strokeBorder(Color.white.opacity(0.16), lineWidth: 0.7)
+        )
+        .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+    }
+}
+
+private struct TourHighlight: ViewModifier {
+    let cornerRadius: CGFloat
+    let active: Bool
+    @State private var pulsing = false
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+    func body(content: Content) -> some View {
+        content.overlay {
+            if active {
+                RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+                    .strokeBorder(Color.white, lineWidth: 1.6)
+                    .padding(-3)
+                    .shadow(color: Color.accentColor.opacity(0.9), radius: pulsing ? 6 : 2)
+                    .scaleEffect(pulsing && !reduceMotion ? 1.06 : 1)
+                    .onAppear {
+                        guard !reduceMotion else { return }
+                        withAnimation(.easeInOut(duration: 0.9).repeatForever(autoreverses: true)) {
+                            pulsing = true
+                        }
+                    }
+            }
+        }
+    }
+}
+
+private extension View {
+    func tourHighlight(cornerRadius: CGFloat, active: Bool = true) -> some View {
+        modifier(TourHighlight(cornerRadius: cornerRadius, active: active))
+    }
+}
+
 // MARK: - Shared header
 
 private struct StepHeader: View {
@@ -575,5 +961,14 @@ private struct StepHeader: View {
                 .padding(.horizontal, 48)
         }
         .padding(.top, 30)
+    }
+}
+
+private extension FeaturePreset {
+    /// The preset's features this Mac can install, through the same gate as
+    /// the catalog rows, so a bundle with an unsupported feature can still
+    /// read as fully picked.
+    var installableFeatures: Set<AppFeature> {
+        features.filter { $0.installBlockedReason == nil }
     }
 }

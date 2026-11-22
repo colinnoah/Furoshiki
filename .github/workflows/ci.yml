@@ -46,10 +46,24 @@ jobs:
     name: Build & selftest
     runs-on: macos-26
     timeout-minutes: 30
+    # Write access is used only by the last step, which runs on pushes to
+    # main; pull requests never publish.
+    permissions:
+      contents: write
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           persist-credentials: false
+
+      # The same self-signed identity on every build keeps the app's code
+      # requirement constant, so Accessibility and Screen Recording grants
+      # survive installing a newer test build. Without the secrets this is a
+      # no-op and the build is signed ad-hoc.
+      - name: Import signing certificate
+        env:
+          SIGNING_CERT_P12: ${{ secrets.SIGNING_CERT_P12 }}
+          SIGNING_CERT_PASSWORD: ${{ secrets.SIGNING_CERT_PASSWORD }}
+        run: ./Tools/ci-setup-signing.sh
 
       - name: Build
         run: ./build.sh
@@ -73,3 +87,12 @@ jobs:
 
       - name: Unit tests
         run: ./build.sh --test
+
+      # After a merge to main, the tested DMG replaces the one in the rolling
+      # "latest-build" pre-release that install.sh downloads.
+      - name: Publish install build
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: ./Tools/publish-install-build.sh

@@ -133,7 +133,19 @@ Reorder or hide panel sections, choose a compact layout, and export settings to 
 
 ## Install
 
-There are no prebuilt releases yet. Build it yourself (see below); `./build.sh --install` puts `Furoshiki.app` into Applications.
+Paste this into Terminal. It downloads the latest build, checks it, puts `Furoshiki.app` into Applications and starts it:
+
+```sh
+curl -fsSL https://raw.githubusercontent.com/colinnoah/Furoshiki/main/install.sh | bash
+```
+
+Run the same command again to update. Furoshiki needs macOS 14 or newer on a Mac with Apple silicon.
+
+Why a Terminal command: the builds are signed with the project's own certificate but not notarized by Apple. A browser marks every download as coming from the internet, and macOS then blocks the app until you confirm it in System Settings > Privacy & Security. `curl` sets no such mark, so the app opens directly. The script verifies the checksum and the code signature before it replaces anything ([read it first](install.sh)). The DMG is also on the [latest build page](https://github.com/colinnoah/Furoshiki/releases/tag/latest-build) if you prefer it.
+
+The in-app updater only installs builds notarized by Apple, so until there are such releases, update with the command above.
+
+To build it yourself instead, see below; `./build.sh --install` puts `Furoshiki.app` into Applications.
 
 ## Uninstall
 
