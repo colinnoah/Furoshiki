@@ -19,6 +19,7 @@ The first Furoshiki release: a new name and icon, no server behind the app, and 
 - Setup explains the name: a furoshiki is a Japanese wrapping cloth that ties many things into one neat bundle, as Furoshiki does with your Mac tools.
 - Features at the bottom of the menu bar panel lists every feature. Switch each one on or off right there, and the gear opens its settings.
 - A short tour at the end of setup shows where the menu bar icon, the panel tabs, the feature list and Settings are.
+- Install or update with one Terminal command. It downloads the latest build without the quarantine flag, so macOS opens it without the Open Anyway step, and it checks the download before replacing anything.
 - Save current preferences to the XDG settings file from Settings > Advanced > Backup. The confirmation shows where the file will be saved.
 
 ### Changed
