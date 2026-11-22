@@ -770,58 +770,17 @@ private struct TourIllustration: View {
         Array(PanelSectionID.allCases.prefix(7).map(\.symbolName))
     }
 
+    /// Split into small pieces: as one expression the sketch outgrew what
+    /// the Swift 6.0 type checker solves in reasonable time.
     private func miniPanel(highlight: Highlight?) -> some View {
-        let s = l10n.s
-        let hub = FeatureStrings.hub(l10n.language)
         let compact = highlight == nil
         return VStack(spacing: compact ? 5 : 7) {
             BrandMark(width: compact ? 18 : 24, tint: .white)
                 .frame(height: compact ? 10 : 14)
-            HStack(spacing: 0) {
-                ForEach(Array(tabSymbols.enumerated()), id: \.offset) { index, symbol in
-                    Image(systemName: symbol)
-                        .font(.system(size: compact ? 6.5 : 8.5, weight: .semibold))
-                        .foregroundStyle(index == 0 ? Color.accentColor : Color.white.opacity(0.7))
-                        .frame(maxWidth: .infinity)
-                }
-            }
-            .frame(height: compact ? 13 : 18)
-            .background(RoundedRectangle(cornerRadius: 5, style: .continuous).fill(Color.white.opacity(0.08)))
-            .tourHighlight(cornerRadius: 6, active: highlight == .tabs)
-
-            VStack(spacing: compact ? 4 : 6) {
-                ForEach(0..<(compact ? 3 : 4), id: \.self) { row in
-                    HStack(spacing: 5) {
-                        Circle().fill(Color.accentColor.opacity(0.8))
-                            .frame(width: compact ? 5 : 7, height: compact ? 5 : 7)
-                        Capsule().fill(Color.white.opacity(0.35))
-                            .frame(width: CGFloat([58, 44, 66, 50][row]) * (compact ? 0.7 : 1), height: compact ? 3 : 4)
-                        Spacer(minLength: 0)
-                        if highlight == .features {
-                            Image(systemName: "gearshape")
-                                .font(.system(size: 7))
-                                .foregroundStyle(.white.opacity(0.7))
-                        }
-                        Capsule()
-                            .fill(row == 2 ? Color.white.opacity(0.25) : Color.accentColor)
-                            .frame(width: compact ? 11 : 15, height: compact ? 6 : 8)
-                            .overlay(alignment: row == 2 ? .leading : .trailing) {
-                                Circle().fill(.white)
-                                    .frame(width: compact ? 4.5 : 6, height: compact ? 4.5 : 6)
-                                    .padding(1)
-                            }
-                    }
-                }
-            }
-            .padding(compact ? 5 : 7)
-            .background(RoundedRectangle(cornerRadius: 6, style: .continuous).fill(Color.white.opacity(0.06)))
-
+            miniTabs(highlight: highlight)
+            miniRows(highlight: highlight)
             if !compact {
-                HStack(spacing: 4) {
-                    footerChip(s.panelSettings, symbol: "gearshape", active: highlight == .settings)
-                    footerChip(hub.pageTitle, symbol: "square.grid.2x2", active: highlight == .features)
-                    footerChip(s.panelQuit, symbol: "power", active: false)
-                }
+                miniFooter(highlight: highlight)
             }
         }
         .padding(compact ? 7 : 9)
@@ -833,6 +792,76 @@ private struct TourIllustration: View {
             RoundedRectangle(cornerRadius: 12, style: .continuous)
                 .strokeBorder(Color.white.opacity(0.16), lineWidth: 0.7)
         )
+    }
+
+    private func miniTabs(highlight: Highlight?) -> some View {
+        let compact = highlight == nil
+        let size: CGFloat = compact ? 6.5 : 8.5
+        return HStack(spacing: 0) {
+            ForEach(Array(tabSymbols.enumerated()), id: \.offset) { index, symbol in
+                Image(systemName: symbol)
+                    .font(.system(size: size, weight: .semibold))
+                    .foregroundStyle(index == 0 ? Color.accentColor : Color.white.opacity(0.7))
+                    .frame(maxWidth: .infinity)
+            }
+        }
+        .frame(height: compact ? 13 : 18)
+        .background(RoundedRectangle(cornerRadius: 5, style: .continuous).fill(Color.white.opacity(0.08)))
+        .tourHighlight(cornerRadius: 6, active: highlight == .tabs)
+    }
+
+    private func miniRows(highlight: Highlight?) -> some View {
+        let compact = highlight == nil
+        let count = compact ? 3 : 4
+        return VStack(spacing: compact ? 4 : 6) {
+            ForEach(0..<count, id: \.self) { row in
+                miniRow(row, compact: compact, showsGear: highlight == .features)
+            }
+        }
+        .padding(compact ? 5 : 7)
+        .background(RoundedRectangle(cornerRadius: 6, style: .continuous).fill(Color.white.opacity(0.06)))
+    }
+
+    private func miniRow(_ row: Int, compact: Bool, showsGear: Bool) -> some View {
+        let widths: [CGFloat] = [58, 44, 66, 50]
+        let scale: CGFloat = compact ? 0.7 : 1
+        let isOn = row != 2
+        let dot: CGFloat = compact ? 5 : 7
+        return HStack(spacing: 5) {
+            Circle().fill(Color.accentColor.opacity(0.8))
+                .frame(width: dot, height: dot)
+            Capsule().fill(Color.white.opacity(0.35))
+                .frame(width: widths[row] * scale, height: compact ? 3 : 4)
+            Spacer(minLength: 0)
+            if showsGear {
+                Image(systemName: "gearshape")
+                    .font(.system(size: 7))
+                    .foregroundStyle(.white.opacity(0.7))
+            }
+            miniSwitch(isOn: isOn, compact: compact)
+        }
+    }
+
+    private func miniSwitch(isOn: Bool, compact: Bool) -> some View {
+        let knob: CGFloat = compact ? 4.5 : 6
+        return Capsule()
+            .fill(isOn ? Color.accentColor : Color.white.opacity(0.25))
+            .frame(width: compact ? 11 : 15, height: compact ? 6 : 8)
+            .overlay(alignment: isOn ? .trailing : .leading) {
+                Circle().fill(Color.white)
+                    .frame(width: knob, height: knob)
+                    .padding(1)
+            }
+    }
+
+    private func miniFooter(highlight: Highlight?) -> some View {
+        let s = l10n.s
+        let hub = FeatureStrings.hub(l10n.language)
+        return HStack(spacing: 4) {
+            footerChip(s.panelSettings, symbol: "gearshape", active: highlight == .settings)
+            footerChip(hub.pageTitle, symbol: "square.grid.2x2", active: highlight == .features)
+            footerChip(s.panelQuit, symbol: "power", active: false)
+        }
     }
 
     private func footerChip(_ title: String, symbol: String, active: Bool) -> some View {
@@ -853,43 +882,8 @@ private struct TourIllustration: View {
 
     private var settingsWindowSketch: some View {
         HStack(spacing: 0) {
-            VStack(alignment: .leading, spacing: 6) {
-                HStack(spacing: 3) {
-                    ForEach([Color.red, .yellow, .green], id: \.self) { color in
-                        Circle().fill(color.opacity(0.85)).frame(width: 5, height: 5)
-                    }
-                }
-                .padding(.bottom, 4)
-                ForEach(0..<6, id: \.self) { row in
-                    HStack(spacing: 4) {
-                        RoundedRectangle(cornerRadius: 2)
-                            .fill(row == 1 ? Color.accentColor : Color.white.opacity(0.4))
-                            .frame(width: 7, height: 7)
-                        Capsule().fill(Color.white.opacity(row == 1 ? 0.7 : 0.3))
-                            .frame(width: CGFloat([30, 36, 26, 32, 28, 34][row]), height: 3.5)
-                    }
-                }
-                Spacer(minLength: 0)
-            }
-            .padding(8)
-            .frame(width: 62, alignment: .leading)
-            .frame(maxHeight: .infinity)
-            .background(Color.white.opacity(0.06))
-
-            VStack(alignment: .leading, spacing: 7) {
-                Capsule().fill(Color.white.opacity(0.7)).frame(width: 52, height: 5)
-                ForEach(0..<4, id: \.self) { row in
-                    HStack {
-                        Capsule().fill(Color.white.opacity(0.3))
-                            .frame(width: CGFloat([46, 38, 52, 34][row]), height: 3.5)
-                        Spacer(minLength: 0)
-                        Capsule().fill(row == 3 ? Color.white.opacity(0.25) : Color.accentColor)
-                            .frame(width: 13, height: 7)
-                    }
-                }
-                Spacer(minLength: 0)
-            }
-            .padding(10)
+            settingsSidebarSketch
+            settingsContentSketch
         }
         .background(
             RoundedRectangle(cornerRadius: 10, style: .continuous)
@@ -900,6 +894,54 @@ private struct TourIllustration: View {
                 .strokeBorder(Color.white.opacity(0.16), lineWidth: 0.7)
         )
         .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+    }
+
+    private var settingsSidebarSketch: some View {
+        let lights: [Color] = [.red, .yellow, .green]
+        let widths: [CGFloat] = [30, 36, 26, 32, 28, 34]
+        return VStack(alignment: .leading, spacing: 6) {
+            HStack(spacing: 3) {
+                ForEach(0..<lights.count, id: \.self) { index in
+                    Circle().fill(lights[index].opacity(0.85)).frame(width: 5, height: 5)
+                }
+            }
+            .padding(.bottom, 4)
+            ForEach(0..<widths.count, id: \.self) { row in
+                sidebarRow(width: widths[row], selected: row == 1)
+            }
+            Spacer(minLength: 0)
+        }
+        .padding(8)
+        .frame(width: 62, alignment: .leading)
+        .frame(maxHeight: .infinity)
+        .background(Color.white.opacity(0.06))
+    }
+
+    private func sidebarRow(width: CGFloat, selected: Bool) -> some View {
+        HStack(spacing: 4) {
+            RoundedRectangle(cornerRadius: 2)
+                .fill(selected ? Color.accentColor : Color.white.opacity(0.4))
+                .frame(width: 7, height: 7)
+            Capsule().fill(Color.white.opacity(selected ? 0.7 : 0.3))
+                .frame(width: width, height: 3.5)
+        }
+    }
+
+    private var settingsContentSketch: some View {
+        let widths: [CGFloat] = [46, 38, 52, 34]
+        return VStack(alignment: .leading, spacing: 7) {
+            Capsule().fill(Color.white.opacity(0.7)).frame(width: 52, height: 5)
+            ForEach(0..<widths.count, id: \.self) { row in
+                HStack {
+                    Capsule().fill(Color.white.opacity(0.3))
+                        .frame(width: widths[row], height: 3.5)
+                    Spacer(minLength: 0)
+                    miniSwitch(isOn: row != 3, compact: false)
+                }
+            }
+            Spacer(minLength: 0)
+        }
+        .padding(10)
     }
 }
 

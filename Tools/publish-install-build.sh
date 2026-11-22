@@ -29,7 +29,11 @@ cp "${dmgs[0]}" dist/Furoshiki.dmg
 (cd dist && shasum -a 256 Furoshiki.dmg > Furoshiki.dmg.sha256)
 
 TITLE="Furoshiki $VERSION (latest build)"
-NOTES="$(cat <<EOF
+# The text goes to a file: macOS's bash 3.2 misparses a heredoc with an
+# apostrophe inside $(...).
+NOTES_FILE="$(mktemp)"
+trap 'rm -f "$NOTES_FILE"' EXIT
+cat > "$NOTES_FILE" <<NOTES
 Furoshiki $VERSION, build $BUILD, from commit ${GITHUB_SHA:0:7}.
 
 Install or update from Terminal:
@@ -38,18 +42,17 @@ Install or update from Terminal:
 curl -fsSL https://raw.githubusercontent.com/$GH_REPO/main/install.sh | bash
 \`\`\`
 
-This build is signed with the project's own certificate, not notarized by Apple. The command above downloads it without the quarantine flag, so it opens without the Open Anyway step. The DMG below works too, but macOS then asks you to confirm in System Settings > Privacy & Security.
+This build is signed with the project certificate, not notarized by Apple. The command above downloads it without the quarantine flag, so it opens without the Open Anyway step. The DMG below works too, but macOS then asks you to confirm in System Settings > Privacy & Security.
 
 What changed: see [CHANGELOG.md](https://github.com/$GH_REPO/blob/main/CHANGELOG.md).
-EOF
-)"
+NOTES
 
 if gh release view "$TAG" >/dev/null 2>&1; then
     # Move the tag to this commit, then refresh the text and the files.
     gh api -X PATCH "repos/$GH_REPO/git/refs/tags/$TAG" -f sha="$GITHUB_SHA" -F force=true >/dev/null
-    gh release edit "$TAG" --prerelease --title "$TITLE" --notes "$NOTES"
+    gh release edit "$TAG" --prerelease --title "$TITLE" --notes-file "$NOTES_FILE"
 else
-    gh release create "$TAG" --prerelease --target "$GITHUB_SHA" --title "$TITLE" --notes "$NOTES"
+    gh release create "$TAG" --prerelease --target "$GITHUB_SHA" --title "$TITLE" --notes-file "$NOTES_FILE"
 fi
 gh release upload "$TAG" dist/Furoshiki.dmg dist/Furoshiki.dmg.sha256 --clobber
 echo "✓ Published $TITLE"
