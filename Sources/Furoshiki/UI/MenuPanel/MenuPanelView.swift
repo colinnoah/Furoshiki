@@ -18,6 +18,8 @@ enum MenuPanelFocusTarget: Equatable {
     case normal
     case section(PanelSectionID)
     case metric(MetricDetailKind)
+    /// The feature list that the footer's Features button opens.
+    case featureManager
 }
 
 final class MenuPanelFocus: ObservableObject {
@@ -41,6 +43,12 @@ final class MenuPanelFocus: ObservableObject {
         serial += 1
         activeMetric = nil
         request = MenuPanelFocusRequest(target: .section(section), serial: serial)
+    }
+
+    func showFeatureManager() {
+        serial += 1
+        activeMetric = nil
+        request = MenuPanelFocusRequest(target: .featureManager, serial: serial)
     }
 
     func focus(_ metric: MetricDetailKind) {
@@ -182,6 +190,10 @@ struct MenuPanelView: View {
             selectedMetric = nil
             selectedSection = section
             focusedSection = section
+        case .featureManager:
+            selectedMetric = nil
+            focusedSection = nil
+            showsFeatureManager = true
         case .metric(let metric):
             showsFeatureManager = false
             focusedSection = nil
