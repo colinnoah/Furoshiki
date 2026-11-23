@@ -13,8 +13,7 @@
   <a href="#install">Install</a> ·
   <a href="#everything-it-does">Features</a> ·
   <a href="#private-by-default">Privacy</a> ·
-  <a href="CHANGELOG.md">Changelog</a> ·
-  <a href="NOTICE.md">Origin &amp; license</a>
+  <a href="CHANGELOG.md">Changelog</a>
 </p>
 
 <p align="center">
@@ -198,9 +197,3 @@ The Furoshiki mark is a knotted cloth bundle: the body carries a seigaiha wave p
 - [Contributing](CONTRIBUTING.md), build, layout and conventions
 - [Support](SUPPORT.md), where to get help
 - [Security](SECURITY.md), how to report a vulnerability
-
-## Origin and license
-
-Furoshiki is a modified fork of [Vorssaint](https://github.com/vorssaint/vorssaint-utils) by Vorssaint, based on upstream commit [`faada18`](https://github.com/vorssaint/vorssaint-utils/commit/faada18df1b90572cddc6182ce7fc04e0eb1435c). All credit for the original features goes to the Vorssaint project and its contributors.
-
-Licensed under the [GNU GPL 3.0 or later](LICENSE). Original source files keep their `Copyright (C) 2026 Vorssaint` notices. Furoshiki has its own name, icon, bundle identifier (`io.github.colinnoah.furoshiki`) and update feed, as the upstream trademark policy requires, and is not an official Vorssaint build. What was changed is listed in [NOTICE.md](NOTICE.md).
