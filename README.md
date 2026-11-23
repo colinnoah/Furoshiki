@@ -29,6 +29,38 @@
 A *furoshiki* is the Japanese wrapping cloth that turns a pile of loose things into one tidy bundle. That is the idea here:
 Per app volume, a real system monitor, a better app switcher, window snapping, Dock previews, clipboard history, text snippets, a file shelf, an uninstaller. The utilities Mac users usually buy one by one, together behind a single menu bar icon, with no account, no telemetry and no subscription.
 
+## A look inside
+
+<p align="center">
+  <img src="docs/assets/readme/screenshots/panel-system.png" width="270" alt="The menu bar panel on its System tab: CPU, GPU and memory with live graphs">
+  <img src="docs/assets/readme/screenshots/panel-utilities.png" width="270" alt="The menu bar panel on its Utilities tab: screenshot, quick panel, app updates, cleaner, Homebrew and more">
+  <img src="docs/assets/readme/screenshots/panel-features.png" width="270" alt="The feature list in the menu bar panel, each feature with a gear for its settings and an on/off switch">
+</p>
+<p align="center"><sub>One click on the menu bar icon: a live system monitor, your tools, and every feature switchable right from the panel.</sub></p>
+
+<p align="center">
+  <img src="docs/assets/readme/screenshots/settings-switcher.png" width="840" alt="Settings showing the window switcher with its three layouts and its shortcuts">
+</p>
+<p align="center"><sub>Settings: every option, shortcut and permission in one window. Here the window switcher with its three layouts.</sub></p>
+
+<p align="center">
+  <img src="docs/assets/readme/screenshots/setup-features.png" width="410" alt="Setup: pick bundles or single features">
+  <img src="docs/assets/readme/screenshots/setup-tour.png" width="410" alt="Setup: a short tour shows where everything lives">
+</p>
+<p align="center"><sub>Setup: combine ready-made bundles or pick single features, then a short tour shows where everything lives.</sub></p>
+
+<details>
+<summary>More screenshots</summary>
+
+<p align="center">
+  <img src="docs/assets/readme/screenshots/settings-features.png" width="840" alt="Settings: the Features page with install and uninstall for every feature">
+</p>
+<p align="center">
+  <img src="docs/assets/readme/screenshots/panel-toggles.png" width="270" alt="The menu bar panel on its Quick toggles tab: dark mode, mute microphone, empty the Trash and more">
+</p>
+
+</details>
+
 ## Install only what you use
 
 Choose individual features or start with a preset. Uninstalled features stop loading and disappear from the interface; reinstalling restores their settings. Setup asks only for the permissions your choices need.
