@@ -1,16 +1,17 @@
 name: Screenshots
 
 # Renders the README screenshots on a real Mac: the app runs in showcase mode
-# and each window is captured. On a pull request from this repository the
-# PNGs are committed to its branch under docs/assets/readme/screenshots, so
-# they can be reviewed in the diff; they are also kept as an artifact.
+# and each window is captured. The PNGs are kept as an artifact and, on a
+# pull request from this repository, committed to its branch under
+# docs/assets/readme/screenshots, where they show in the diff.
+#
+# It runs only when asked: add the label "update-screenshots" to a pull
+# request, or start it by hand. GitHub holds CI on the commit it adds until
+# someone approves the run or pushes again.
 on:
   workflow_dispatch:
   pull_request:
-    paths:
-      - "Sources/Furoshiki/Support/ReadmeShowcase.swift"
-      - "Tools/readme-screenshots.sh"
-      - ".github/workflows/screenshots.yml"
+    types: [labeled]
 
 permissions:
   contents: read
@@ -22,6 +23,7 @@ concurrency:
 jobs:
   capture:
     name: Capture README screenshots
+    if: github.event_name == 'workflow_dispatch' || github.event.label.name == 'update-screenshots'
     runs-on: macos-26
     timeout-minutes: 40
     # Write access is used only by the last step, on pull requests from this
