@@ -1,8 +1,9 @@
 name: Screenshots
 
 # Renders the README screenshots on a real Mac: the app runs in showcase mode
-# and each window is captured. The PNGs come back as an artifact to review
-# and commit under docs/assets/readme/screenshots.
+# and each window is captured. On a pull request from this repository the
+# PNGs are committed to its branch under docs/assets/readme/screenshots, so
+# they can be reviewed in the diff; they are also kept as an artifact.
 on:
   workflow_dispatch:
   pull_request:
@@ -19,9 +20,16 @@ jobs:
     name: Capture README screenshots
     runs-on: macos-26
     timeout-minutes: 40
+    # Write access is used only by the last step, on pull requests from this
+    # repository.
+    permissions:
+      contents: write
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
+          # The branch itself rather than the merge commit, so the captures
+          # can be committed onto it.
+          ref: ${{ github.head_ref || github.ref }}
           persist-credentials: false
 
       - name: Build
@@ -38,3 +46,24 @@ jobs:
           path: build/readme-screenshots/*.png
           if-no-files-found: warn
           retention-days: 7
+
+      # A push made with the workflow token starts no new runs, so this
+      # cannot loop.
+      - name: Commit screenshots to the pull request
+        if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
+        env:
+          GH_TOKEN: ${{ github.token }}
+          HEAD_REF: ${{ github.head_ref }}
+        run: |
+          set -euo pipefail
+          mkdir -p docs/assets/readme/screenshots
+          cp build/readme-screenshots/*.png docs/assets/readme/screenshots/
+          git add docs/assets/readme/screenshots
+          if git diff --cached --quiet; then
+            echo "Screenshots unchanged."
+            exit 0
+          fi
+          git -c user.name="github-actions[bot]" \
+              -c user.email="41898282+github-actions[bot]@users.noreply.github.com" \
+              commit -m "Update README screenshots"
+          git push "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" "HEAD:${HEAD_REF}"
