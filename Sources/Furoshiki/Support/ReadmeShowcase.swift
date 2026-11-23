@@ -25,9 +25,12 @@ enum ReadmeShowcase {
         override([DefaultsKey.language: AppLanguage.enUS.rawValue,
                   DefaultsKey.hasOnboarded: true])
         // Every feature this Mac can run, so each panel tab and list is full.
-        override(Dictionary(uniqueKeysWithValues: AppFeature.allCases
-            .filter { $0.installBlockedReason == nil }
-            .map { ($0.availabilityKey, true as Any) }))
+        let installable = AppFeature.allCases.filter { $0.installBlockedReason == nil }
+        override(Dictionary(uniqueKeysWithValues: installable.map { ($0.availabilityKey, true as Any) }))
+        // Kept on purpose, so Settings does not offer to uninstall the
+        // features this fresh profile never switched on.
+        override([DefaultsKey.featureHubKeptFeatures:
+                    installable.map(\.rawValue).sorted().joined(separator: ",")])
 
         let app = NSApplication.shared
         app.setActivationPolicy(.regular)
@@ -53,7 +56,6 @@ enum ReadmeShowcase {
         [
             Scene(name: "panel-system") { panelWindow { MenuPanelFocus.shared.focus(PanelSectionID.system) } },
             Scene(name: "panel-utilities") { panelWindow { MenuPanelFocus.shared.focus(PanelSectionID.utilities) } },
-            Scene(name: "panel-controls") { panelWindow { MenuPanelFocus.shared.focus(PanelSectionID.controls) } },
             Scene(name: "panel-toggles") { panelWindow { MenuPanelFocus.shared.focus(PanelSectionID.toggles) } },
             Scene(name: "panel-features") { panelWindow { MenuPanelFocus.shared.showFeatureManager() } },
             Scene(name: "settings-features") { settingsWindow(.features) },
@@ -85,8 +87,8 @@ enum ReadmeShowcase {
             host.topAnchor.constraint(equalTo: backdrop.topAnchor),
             host.bottomAnchor.constraint(equalTo: backdrop.bottomAnchor),
         ])
-        let window = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 332, height: 640),
-                              styleMask: [.borderless], backing: .buffered, defer: false)
+        let window = KeyableWindow(contentRect: NSRect(x: 0, y: 0, width: 332, height: 640),
+                                   styleMask: [.borderless], backing: .buffered, defer: false)
         window.isOpaque = false
         window.backgroundColor = .clear
         window.hasShadow = true
@@ -129,6 +131,13 @@ enum ReadmeShowcase {
         image.capInsets = NSEdgeInsets(top: radius, left: radius, bottom: radius, right: radius)
         image.resizingMode = .stretch
         return image
+    }
+
+    /// A borderless window cannot become key by default, and its switches
+    /// then draw in the inactive gray instead of the accent color.
+    private final class KeyableWindow: NSWindow {
+        override var canBecomeKey: Bool { true }
+        override var canBecomeMain: Bool { true }
     }
 
     // MARK: Runner

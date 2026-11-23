@@ -35,8 +35,12 @@ jobs:
       - name: Build
         run: ./build.sh
 
+      # The runner has a mouse and no trackpad, so macOS would draw every
+      # scroll bar permanently; most Macs show them only while scrolling.
       - name: Capture
-        run: ./Tools/readme-screenshots.sh build/readme-screenshots
+        run: |
+          defaults write -g AppleShowScrollBars -string WhenScrolling
+          ./Tools/readme-screenshots.sh build/readme-screenshots
 
       - name: Upload screenshots
         if: always()
